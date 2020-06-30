@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 """
   © Aix Marseille University - LIS-CNRS UMR 7020
@@ -121,13 +122,30 @@ def distance_to_mask(mask):
 
 
 def extract_contour(filled_form):
-
+    """
+    Extract contours from a binary mask
+    :param filled_form: binary mask
+    :return: contours: as numpy array
+    """
     distance_map = distance_to_mask(filled_form)
     contours = np.zeros(distance_map.shape)
     contours[np.where(distance_map==1)]=1
 
     return contours
 
+def compute_gdist(mesh):
+    """
+    Geodesic extraction on a mesh with an huge number of starting points
+    :param mesh: trimesh object
+    :return:
+    """
+    vert = mesh.vertices
+    poly = mesh.faces.astype(np.int32)
+
+    source_index = np.linspace(0, len(vert)-1, len(vert)//20).astype(np.int32)
+    target_index = np.linspace(0, len(vert)-1, len(vert)).astype(np.int32)
+
+    return gdist.compute_gdist(vert, poly, source_index, target_index)
 
 
 
@@ -282,16 +300,16 @@ def texture_gifti_to_nifti(outpath, gifti_name, filename_nii_reso, texture1, tex
 
 # Compute the downsampled regular mesh
 
-  epsilon0 = 0.8
-  epsilon = 1  #2
+  epsilon0 = 0.5
+  epsilon = 0.5  #2
   downsampled_mesh = np.zeros(arr_reso.shape)
 
   ## percentage of downsampling: this will keep 25% of the available information or of the full mesh
 
-  percentage = 20
+  downsampling_rate = 0.2 # between 0 and 1
 
-  nb_long_geodesics = int((np.max(texture1)*percentage)/100) # number of longitudinal geodesics
-  nb_trans_geodesics = int((np.max(texture2)*percentage)/100) # number of transversal geodesics
+  nb_long_geodesics = int(np.max(texture1)*downsampling_rate) # number of longitudinal geodesics
+  nb_trans_geodesics = int(np.max(texture2)*downsampling_rate) # number of transversal geodesics
 
   lines1 = np.linspace(1, np.max(texture1), nb_long_geodesics)
   lines2 = np.linspace(1, np.max(texture2), nb_trans_geodesics)
@@ -333,7 +351,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    print("ok")
 
     if not os.path.exists(args.output):
         os.makedirs(args.output)
@@ -343,12 +360,10 @@ if __name__ == '__main__':
 
     mesh = load_mesh(args.input)
 
-    print(mesh.metadata)
-
     mesh.apply_transform(mesh.principal_inertia_transform)
 
     vert_id = 0
-    vert_id1 = 0
+    vert_id1 = 180
 
     print("Centroid:\n")
     print(mesh.centroid)
@@ -370,6 +385,7 @@ if __name__ == '__main__':
 
     # Compute transverse geodesics on the organ surfaces
     source_index1 = np.array([vert_id1], dtype=np.int32)
+    #source_index1 = np.linspace(0, len(vert)-1, len(vert)//1000).astype(np.int32) # Example of geodesic extraction on a mesh with a high number of starting points
     trans_geodesics = gdist.compute_gdist(vert, poly, source_index1, target_index)
 
 
@@ -379,9 +395,8 @@ if __name__ == '__main__':
     print(mesh.vertices.shape)
 
 
-
     visb_sc = texture_plot(mesh=mesh, tex=trans_geodesics,
-                                 caption='Transverse geodesics',
-                                 cblabel='Transverse_geodesics')
+                                 caption='geodesics',
+                                 cblabel='geodesics')
 
-    visb_sc.preview()
+    #visb_sc.preview()

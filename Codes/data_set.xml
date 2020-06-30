@@ -1,0 +1,9 @@
+<data-set>
+	//target file//
+    <subject id="subj1">
+        <visit id="experiment">
+            <filename object_id="bladder">/home/karimm/Bureau/Deep_project/AR_patho/simulated_distorted_sequence_vtk/AR_Dyn3D_5SL_3dRecbyReg-Expi_FilledContour_0478.vtk</filename>
+            
+        </visit>
+    </subject>
+</data-set>
