@@ -1,8 +1,10 @@
-# -*- coding: utf-8 -*-
+import pymesh
+import numpy as np
+import glob
 
 """
   © Aix Marseille University - LIS-CNRS UMR 7020
-  Author(s): Karim Makki (karim.makki@univ-amu.fr)
+  Author(s): Amine Bohi, Karim Makki (amine.bohi,karim.makki{@univ-amu.fr})
   This software is governed by the CeCILL-B license under French law and
   abiding by the rules of distribution of free software.  You can  use,
   modify and/ or redistribute the software under the terms of the CeCILL-B
@@ -27,56 +29,36 @@
   knowledge of the CeCILL-B license and that you accept its terms.
 """
 
-
-import pymesh
-import glob
-import nibabel as nb
-import os
-import numpy as np
+#--------------------------------------------------------------------
+# script for computing area distortions
+#
 
 
 
-path = '/home/karimm/Bureau/marching_cubes/4D_quad_mesh/AR_Dyn3D_5SL_pathological_distorted'
-basename = 'output_AR_Dyn3D_5SL_3dRecbyReg'
-subject = 'AR_Dyn3D_5SL_pathological_distorted'
-mesh_set = glob.glob(path+'/'+basename+'*.obj')
+path = '../Data/AF_Dyn3D_5SL_QuadMesh_OBJ/'
+basename = 'output_AF_Dyn3D_5SL_3dRecbyReg'
+mesh_set = glob.glob(path + basename + '*.obj')
 mesh_set.sort()
-
-opath = './'+subject
-if not os.path.exists(opath):
-   os.makedirs(opath)
-
-
 print(mesh_set)
 
-def write_mesh(mesh, gifti_file):
-    """ Create a mesh object from two arrays
+mesh_0 = pymesh.load_mesh("AF_Dyn3D_5SL_3dRecbyReg-Expi_FilledContour_0000.obj")
+mesh_0.add_attribute("face_area")
+areas = mesh_0.get_attribute("face_area")
+print(areas)
 
-    fixme:  intent should be set !
-    """
-    coord = mesh.vertices
-    triangles = mesh.faces
-    carray = nb.gifti.GiftiDataArray().from_array(coord.astype(np.float32),
-                                                  "NIFTI_INTENT_POINTSET")
-    tarray = nb.gifti.GiftiDataArray().from_array(
-        triangles.astype(np.float32), "NIFTI_INTENT_TRIANGLE")
-    img = nb.gifti.GiftiImage(darrays=[carray, tarray])
-    # , meta=mesh.metadata)
-
-    nb.gifti.write(img, gifti_file)
+areas_ratio_0 = np.divide(areas, sum(areas))
+print(areas_ratio_0)
 
 
-for t in range(0,len(mesh_set)):
+for t in range(len(mesh_set)):
+    mesh_i = pymesh.load_mesh(mesh_set[t])
+    mesh_i.add_attribute("face_area")
+    areas_i = mesh_i.get_attribute("face_area")
+    areas_ratio_i = np.divide(areas_i, sum(areas_i))
 
-    print(t)
+    areas_dist = areas_ratio_0 - areas_ratio_i
 
 
-    prefix = mesh_set[t].split('/')[-1].split('.')[0]
+    resulting_file = '../Data/mesh_areadist_eval' + '/' + 'AF_3Dyn_5SL_'+np.str(t) + '.npy'
+    np.save(resulting_file, areas_dist)
 
-    #print(prefix)
-
-    gifti_file = opath+'/'+prefix+'.gii'
-
-    print(gifti_file)
-    mesh = pymesh.load_mesh(mesh_set[t])
-    write_mesh(mesh, gifti_file)

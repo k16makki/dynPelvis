@@ -2,7 +2,7 @@
 
 """
   © Aix Marseille University - LIS-CNRS UMR 7020
-  Author(s): Karim Makki (karim.makki@univ-amu.fr)
+  Author(s): Karim Makki, Amine Bohi (karim.makki,amine.bohi{@univ-amu.fr})
   This software is governed by the CeCILL-B license under French law and
   abiding by the rules of distribution of free software.  You can  use,
   modify and/ or redistribute the software under the terms of the CeCILL-B
@@ -28,50 +28,45 @@
 """
 
 
-import numpy as np
-import pymesh
 import glob
 import os
 
-data = '/home/karimm/Bureau/marching_cubes/4D_quad_mesh/AR_Dyn3D_5SL_pathological_distorted'
-
-subject = 'AR_Dyn3D_5SL_pathological_distorted'
-output = './Dihedral_angle'
-#output = './vertex_area'
-
-output = output + '/' + subject
-
-print(output)
-
-if not os.path.exists(output):
-   os.makedirs(output)
 
 
-dynamicSet = glob.glob(data + '/*.obj') 
+vtk_path = '/home/karimm/Bureau/input_data/output/AR_patho_distorted'# global path to Deformetrica's output
+nifti_path = '/home/karimm/Bureau/Deep_project/AR_patho/simulated_distorted_sequence'
+nifti_basename = 'AR_Dyn3D_5SL_3dRecbyReg'#-Expi'#_FilledContour'
+#vtk_basename = 'AOL_Dyn3D_5SL_3dRecbyReg-Expi'#_Contour'
 
-dynamicSet.sort()
-print(dynamicSet)
 
-for  t in range(len(dynamicSet)):
- 
-        
-        prefix = dynamicSet[t].split('/')[-1].split('.')[0]
-        print(prefix)
- 
-        m = pymesh.load_mesh(dynamicSet[t])
+nifti_dynamicSet = glob.glob(nifti_path+'/'+nifti_basename+'*.nii.gz')
+nifti_dynamicSet.sort()
 
-        m.add_attribute("vertex_dihedral_angle")
-        feature = m.get_attribute("vertex_dihedral_angle")
-
-        #m.add_attribute("vertex_area")
-        #feature = m.get_attribute("vertex_area")
-        np.save(output+'/'+prefix+'.npy', feature)
-
-      
+print(nifti_dynamicSet)
 
 
 
+vtk_basename = 'output_' + nifti_basename
+
+vtk_dynamicSet = glob.glob(vtk_path+'/'+vtk_basename+'*')
+vtk_dynamicSet.sort()
+
+print(vtk_dynamicSet)
+
+for t in range(len(vtk_dynamicSet)-1):
+
+    prefix = vtk_dynamicSet[t].split('/')[-1].split('.')[0]
 
 
-        
+    points = vtk_dynamicSet[t]+'/DeterministicAtlas__Reconstruction__bladder__subject_subj1.vtk'
 
+    volume = nifti_dynamicSet[t+1]
+
+    go = 'time python sphere_projection_simulations.py -in ' + volume + ' -subject ' + nifti_basename+'_pathological_distorted' + ' -t ' + prefix + ' -pts ' + points
+
+    print(go)
+
+    os.system(go)
+
+
+    #print(points)

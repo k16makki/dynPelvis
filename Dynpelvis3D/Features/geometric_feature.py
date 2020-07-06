@@ -2,7 +2,7 @@
 
 """
   © Aix Marseille University - LIS-CNRS UMR 7020
-  Author(s): Karim Makki (karim.makki@univ-amu.fr)
+  Author(s): Karim Makki, Amine Bohi (karim.makki, amine.bohi{@univ-amu.fr})
   This software is governed by the CeCILL-B license under French law and
   abiding by the rules of distribution of free software.  You can  use,
   modify and/ or redistribute the software under the terms of the CeCILL-B
@@ -26,6 +26,7 @@
   The fact that you are presently reading this means that you have had
   knowledge of the CeCILL-B license and that you accept its terms.
 """
+
 
 
 import numpy as np
@@ -78,14 +79,13 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-in', '--shape', help='3D binary mask of the shape', type=str, required = True) #req
-    parser.add_argument('-t', '--time', help='time index', type=str, required = True) #req
-    parser.add_argument('-subject', '--subject', help='subject name', type=str, required = True) #req
+    parser.add_argument('-in', '--shape', help='3D binary mask of the shape', type=str, required = True)
+    #parser.add_argument('-t', '--time', help='time index', type=str, required = True)
     parser.add_argument('-opath', '--output', help='output path', type=str)
     parser.add_argument('-pts', '--points', help='set of contour points, as vtk file', type=str)
-    parser.add_argument('-ker', '--kernel', help='erosion kernel', type=int, default=9)
-    parser.add_argument('-r', '--radius', help='radius of the surrounding sphere', type=float, default=80)
-    parser.add_argument('-s', '--sampling', help='sampling rate, relative to voxel size', type=float, default=3)
+    parser.add_argument('-ker', '--kernel', help='erosion kernel', type=int, default=7)
+    parser.add_argument('-r', '--radius', help='radius of the surrounding sphere', type=float, default=60)
+    parser.add_argument('-s', '--sampling', help='sampling rate, relative to voxel size', type=float, default=2)
 
 
 
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     if args.output is not None :
         opath = args.output
 
-    output = opath+'/ECCV_results/features/'+args.subject
+    output = opath+'/feature'
     if not os.path.exists(output):
         os.makedirs(output)
 
@@ -161,7 +161,7 @@ if __name__ == '__main__':
 
     #Dirichlet boundary conditions
 
-    ## Binary erosion of the shape (inner boundary)
+    ## Binary erosion of the shape
 
     img = ndimage.binary_erosion(img, structure=np.ones((args.kernel,args.kernel,args.kernel)) ).astype(img.dtype)
 
@@ -184,7 +184,7 @@ if __name__ == '__main__':
     R = np.where(out_boundary+img == 0)
 
 
-    n_iter = 200
+    n_iter = 300
 
     #n_iter = 3*args.radius
 
@@ -223,39 +223,39 @@ if __name__ == '__main__':
 
     # iteratively compute correspondence trajectory lengths L0 and L1 using the Gauss_Seidel method
 
-    for it in range (150):
+    for it in range (200):
     #for it in range (np.int(0.5*n_iter)):
 
-             #L0_n = L0
+             L0_n = L0
              L1_n = L1
 
-             #L0[R[0],R[1],R[2]] =  (1 + np.absolute(Nx[R[0],R[1],R[2]])* L0_n[(R[0]-np.sign(Nx[R[0],R[1],R[2]])).astype(int),R[1],R[2]]+ \
-             #np.absolute(Ny[R[0],R[1],R[2]]) * L0_n[R[0],(R[1]-np.sign(Ny[R[0],R[1],R[2]])).astype(int),R[2]]  \
-             #+ np.absolute(Nz[R[0],R[1],R[2]]) * L0_n[R[0],R[1],(R[2]-np.sign(Nz[R[0],R[1],R[2]])).astype(int)])  /   den[R[0],R[1],R[2]]
+             L0[R[0],R[1],R[2]] =  (1 + np.absolute(Nx[R[0],R[1],R[2]])* L0_n[(R[0]-np.sign(Nx[R[0],R[1],R[2]])).astype(int),R[1],R[2]]+ \
+             np.absolute(Ny[R[0],R[1],R[2]]) * L0_n[R[0],(R[1]-np.sign(Ny[R[0],R[1],R[2]])).astype(int),R[2]]  \
+             + np.absolute(Nz[R[0],R[1],R[2]]) * L0_n[R[0],R[1],(R[2]-np.sign(Nz[R[0],R[1],R[2]])).astype(int)])  /   den[R[0],R[1],R[2]]
 
              L1[R[0],R[1],R[2]] =  (1 + np.absolute(Nx[R[0],R[1],R[2]])* L1_n[(R[0]+np.sign(Nx[R[0],R[1],R[2]])).astype(int),R[1],R[2]]+ \
              np.absolute(Ny[R[0],R[1],R[2]]) * L1_n[R[0],(R[1]+np.sign(Ny[R[0],R[1],R[2]])).astype(int),R[2]]  \
              + np.absolute(Nz[R[0],R[1],R[2]]) * L1_n[R[0],R[1],(R[2]+np.sign(Nz[R[0],R[1],R[2]])).astype(int)])  /   den[R[0],R[1],R[2]]
 
 
-             del L1_n
+             del L0_n, L1_n
 
 
     #compute  the thickness of the tissue region inside R
 
-    thickness[R[0],R[1],R[2]] = L1[R[0],R[1],R[2]] #+ L0[R[0],R[1],R[2]]
+    thickness[R[0],R[1],R[2]] = L1[R[0],R[1],R[2]] + L0[R[0],R[1],R[2]]
 
-    # n = nib.Nifti1Image(u, nib.load(args.shape).affine)
-    # nib.save(n, output+'/harmonic_interpolant.nii.gz')
-    #
-    # p = nib.Nifti1Image(L0, nib.load(args.shape).affine)
-    # nib.save(p, output+'/L0.nii.gz')
-    #
-    # q = nib.Nifti1Image(L1, nib.load(args.shape).affine)
-    # nib.save(q, output+'/L1.nii.gz')
-    #
-    # r = nib.Nifti1Image(L0, nib.load(args.shape).affine)
-    # nib.save(r, output+'/thickness.nii.gz')
+    n = nib.Nifti1Image(u, nib.load(args.shape).affine)
+    nib.save(n, output+'/harmonic_interpolant.nii.gz')
+
+    p = nib.Nifti1Image(L0, nib.load(args.shape).affine)
+    nib.save(p, output+'/L0.nii.gz')
+
+    q = nib.Nifti1Image(L1, nib.load(args.shape).affine)
+    nib.save(q, output+'/L1.nii.gz')
+
+    r = nib.Nifti1Image(L0, nib.load(args.shape).affine)
+    nib.save(r, output+'/thickness.nii.gz')
 
     del L0, L1
 
@@ -266,10 +266,8 @@ if __name__ == '__main__':
 
 
     texture = thickness[points[:,0].astype(int), points[:,1].astype(int), points[:,2].astype(int)]
-    #texture/= np.max(texture)
-    #texture = np.divide(1,1+0.1*np.sqrt(texture))
-    texture = np.divide(args.radius,texture)
     texture/= np.max(texture)
+    texture = np.divide(1,1+0.1*np.sqrt(texture))
 
     del thickness
 
@@ -289,7 +287,7 @@ if __name__ == '__main__':
 
     #np.save(output+'/'+args.time+'.npy', feature)
 
-    np.save(output+'/'+args.time+'.npy', feature)
+    np.save(output+'/feature.npy', feature)
 
 
     # res0, res1 = 400, 400

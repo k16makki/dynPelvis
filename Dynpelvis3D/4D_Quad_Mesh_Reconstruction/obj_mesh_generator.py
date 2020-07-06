@@ -1,8 +1,12 @@
-# -*- coding: utf-8 -*-
+import pymesh
+import vtk
+from vtk.util.numpy_support import vtk_to_numpy
+import glob
+import os
 
 """
   © Aix Marseille University - LIS-CNRS UMR 7020
-  Author(s): Karim Makki (karim.makki@univ-amu.fr)
+  Author(s): Karim Makki, Amine Bohi (karim.makki,amine.bohi{@univ-amu.fr})
   This software is governed by the CeCILL-B license under French law and
   abiding by the rules of distribution of free software.  You can  use,
   modify and/ or redistribute the software under the terms of the CeCILL-B
@@ -28,11 +32,14 @@
 """
 
 
-import pymesh
-import vtk
-from vtk.util.numpy_support import vtk_to_numpy
-import glob
-import os
+#--------------------------------------------------------------------
+# Generate Quadrilateral OBJ meshes from the quad mesh at the rest state and
+# the tracked pointclouds all over the sequence
+# Ref: Makki.K et al. A new geodesic-based feature for characterizationof 3D shapes:
+# application to soft tissue organtemporal deformations
+# ICPR International Conference on Pattern Recognition -- Milan 01/2021
+#
+
 
 def vtk_to_array(filename):
 
@@ -48,49 +55,38 @@ def vtk_to_array(filename):
 
     return vtk_to_numpy(array)
 
-# Mesh source (quad mesh generated using Instant Meshes, .obj format) 
-
-mesh_src = pymesh.load_mesh("/home/karimm/Bureau/marching_cubes/AR_Dyn3D_patho_simulated/AR_patho_new_M0.obj")
-
-# Path to the folder containing the output of Deormetrica
-
-path = '/home/karimm/Bureau/input_data/output/AR_patho_distorted/'
-
-# Basename from the subfolders of the Deformetrica main Output folder
-basename = 'output_AR_Dyn3D_5SL_3dRecbyReg'
-
-#subject_name
-Subject_name = 'AR_Dyn3D_5SL_pathological_distorted'
-
-
+mesh_src = pymesh.load_mesh("./points_M0_vtk/step5/AR_Dyn3D_5SL_0000.obj")
 points = mesh_src.vertices
 
-print(points.shape)
+
+
+path = '/home/aminebohi/PycharmProjects/DynPelvis/AF_Dyn3D_5SL_proper_mesh/'
+basename = 'output_AF_Dyn3D_5SL_3dRecbyReg'
 #result_path = output_path+'/'+basename+'_elongation'
 vertices_set = glob.glob(path+basename+'*')
 vertices_set.sort()
 
 print(len(vertices_set))
 
-outfile =  './'+Subject_name
-if not os.path.exists(outfile):
-   os.makedirs(outfile)
 
 for t in range(0,len(vertices_set)-1):
 
-    #print(t)
+    print(t)
+
 
     prefix = vertices_set[t].split('/')[-1].split('.')[0]
 
+    #print(prefix)
+
     tracked_pointset_vtk = vertices_set[t]+'/DeterministicAtlas__Reconstruction__bladder__subject_subj1.vtk'
 
-    #print(tracked_pointset_vtk)
+    outfile =  vertices_set[t]+'.obj'
 
-   
+
+
     points = vtk_to_array(tracked_pointset_vtk)
-    
     mesh_trg = pymesh.form_mesh(points, mesh_src.faces)
 
-    pymesh.save_mesh(outfile+'/'+prefix+'.obj', mesh_trg)
+    pymesh.save_mesh(outfile, mesh_trg)
 
-#print(points.shape)
+

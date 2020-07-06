@@ -1,8 +1,12 @@
-# -*- coding: utf-8 -*-
+import numpy as np
+import nibabel as nib
+from skimage import measure
+import trimesh
+import glob
 
 """
   © Aix Marseille University - LIS-CNRS UMR 7020
-  Author(s): Karim Makki (karim.makki@univ-amu.fr)
+  Author(s): Karim Makki, Amine Bohi (karim.makki, amine.bohi{@univ-amu.fr})
   This software is governed by the CeCILL-B license under French law and
   abiding by the rules of distribution of free software.  You can  use,
   modify and/ or redistribute the software under the terms of the CeCILL-B
@@ -27,45 +31,28 @@
   knowledge of the CeCILL-B license and that you accept its terms.
 """
 
-import glob
-import os
+
+# The current folder should contain all the volumes V0 (as nifti files) and the current script must be in the same folder containing the nifti volume(s)
+# This will output a set of mesh surfaces of the organ
 
 
+subjectSet = glob.glob('./*.nii.gz') 
 
-vtk_path = '/home/karimm/Bureau/input_data/output/AR_patho_distorted'# global path to Deformetrica's output
-nifti_path = '/home/karimm/Bureau/Deep_project/AR_patho/simulated_distorted_sequence'
-nifti_basename = 'AR_Dyn3D_5SL_3dRecbyReg'#-Expi'#_FilledContour'
-#vtk_basename = 'AOL_Dyn3D_5SL_3dRecbyReg-Expi'#_Contour'
+subjectSet.sort()
+print(subjectSet)
 
+for subject in range(len(subjectSet)):
+ 
+        vol = nib.load(subjectSet[subject]).get_data()
+        subject_name = subjectSet[subject].split('/')[-1].split('.')[0]
+ 
+        outfile_name = './'+subject_name+'.ply'
 
-nifti_dynamicSet = glob.glob(nifti_path+'/'+nifti_basename+'*.nii.gz')
-nifti_dynamicSet.sort()
+        verts, faces, norm, val = measure.marching_cubes_lewiner(vol, spacing=(1,1,1), gradient_direction='ascent')#,allow_degenerate=True)
 
-print(nifti_dynamicSet)
+        mesh = trimesh.Trimesh(vertices= verts, faces= faces) 
 
+        mesh.export(outfile_name)
 
+        
 
-vtk_basename = 'output_' + nifti_basename
-
-vtk_dynamicSet = glob.glob(vtk_path+'/'+vtk_basename+'*')
-vtk_dynamicSet.sort()
-
-print(vtk_dynamicSet)
-
-for t in range(len(vtk_dynamicSet)-1):
-
-    prefix = vtk_dynamicSet[t].split('/')[-1].split('.')[0]
-
-
-    points = vtk_dynamicSet[t]+'/DeterministicAtlas__Reconstruction__bladder__subject_subj1.vtk'
-
-    volume = nifti_dynamicSet[t+1]
-
-    go = 'time python sphere_projection_simulations.py -in ' + volume + ' -subject ' + nifti_basename+'_pathological_distorted' + ' -t ' + prefix + ' -pts ' + points
-
-    print(go)
-
-    os.system(go)
-
-
-    #print(points)
